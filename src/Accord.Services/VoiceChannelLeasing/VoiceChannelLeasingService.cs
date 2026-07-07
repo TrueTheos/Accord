@@ -83,6 +83,25 @@ public class VoiceChannelLeasingService(AccordContext db,
         return ServiceResponse.Ok(ToDto(lease));
     }
 
+    public async Task<ServiceResponse<VoiceChannelLeaseDto>> DisbandOwnedChannel(
+        PermissionUser forUser,
+        CancellationToken cancellationToken)
+    {
+        var lease = await db.VoiceChannelLeases
+            .Where(x => x.ClosedDateTime == null)
+            .FirstOrDefaultAsync(x => x.OwnerUserId == forUser.DiscordUserId, cancellationToken);
+
+        if (lease is null)
+        {
+            return ServiceResponse.Fail<VoiceChannelLeaseDto>("You do not have an active leased voice channel");
+        }
+
+        var dto = ToDto(lease);
+        await CloseInternal(lease, forUser.DiscordUserId, cancellationToken);
+
+        return ServiceResponse.Ok(dto);
+    }
+
     public async Task<IReadOnlyList<VoiceChannelLeaseDto>> GetActiveLeases(CancellationToken cancellationToken)
     {
         var leases = await db.VoiceChannelLeases

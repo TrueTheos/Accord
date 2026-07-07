@@ -43,4 +43,19 @@ public class VoiceChannelLeasingCommandGroup(
 
         return Result.FromSuccess();
     }
+
+    [Command("disband"), Description("Disbands your leased voice channel"), Ephemeral]
+    public async Task<IResult> DisbandVoiceChannel()
+    {
+        var executingUser = await commandContext.ToPermissionUser(permissionUserFactory);
+
+        var response = await mediator.Send(new DisbandVoiceChannelRequest(executingUser));
+
+        await response.GetAction(
+            async () => await feedbackService.SendContextualAsync(
+                $"Voice channel **{response.Value!.ChannelName}** has been disbanded."),
+            async () => await feedbackService.SendContextualAsync(response.ErrorMessage));
+
+        return Result.FromSuccess();
+    }
 }
